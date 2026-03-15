@@ -58,6 +58,14 @@ training-data/            Agent training data research
 ├── agent-trajectories/    Curating data from agent runs
 └── tool-use-data/         Training data for tool calling
 
+security/                 Agent security research (defensive)
+├── prompt-injection/      Direct injection techniques + detection
+├── indirect-injection/    Attacks embedded in tool outputs / documents
+├── data-exfiltration/     Preventing sensitive data leaks
+├── tool-misuse/           Detecting harmful tool usage patterns
+├── guardrail-evasion/     Hardening safety guardrails against bypasses
+└── defense-strategies/    Combined multi-layer defense stacks
+
 runtime/                  Compose best variants into a full agent
 ```
 
