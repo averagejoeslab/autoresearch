@@ -1,0 +1,14 @@
+__pycache__/
+*.py[oc]
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Experiment results (per-folder, untracked)
+results.tsv
+run.log
+
+# Agent prompt files
+CLAUDE.md
+AGENTS.md

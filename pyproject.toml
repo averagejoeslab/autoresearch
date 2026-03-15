@@ -1,0 +1,11 @@
+[project]
+name = "autoresearch-agents"
+version = "0.1.0"
+description = "Autonomous research of agent runtime primitives"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+local = ["llama-cpp-python>=0.3.0"]
+api = ["openai>=1.0.0"]
