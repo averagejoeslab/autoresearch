@@ -52,7 +52,8 @@ benchmarks/               Benchmark design research
 evals/                    Evaluation methodology research
 ├── grading-strategies/    Code-based vs model-based vs hybrid
 ├── reliability-metrics/   pass@k vs pass^k, consistency
-└── prompt-evaluation/     Prompt effectiveness across models
+├── prompt-evaluation/     Prompt effectiveness across models
+└── llm-judge/             LLM-as-judge harness optimization
 
 training-data/            Agent training data research
 ├── agent-trajectories/    Curating data from agent runs
@@ -65,6 +66,10 @@ security/                 Agent security research (defensive)
 ├── tool-misuse/           Detecting harmful tool usage patterns
 ├── guardrail-evasion/     Hardening safety guardrails against bypasses
 └── defense-strategies/    Combined multi-layer defense stacks
+
+architectures/            Model architecture research
+├── classifier/            Best encoder + head for agent classification tasks
+└── inference-pipeline/    Multi-stage pipeline structure optimization
 
 runtime/                  Compose best variants into a full agent
 ```
