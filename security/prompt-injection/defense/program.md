@@ -1,122 +1,121 @@
-# Prompt Injection Defense — Autoresearch Program
+# Prompt Injection Classifier Training — Autoresearch Program
 
 ## Objective
 
-Build a robust injection detector by iterating on the `InjectionDetector` class in `harness.py`. The detector uses a **BERT-based classifier** as its core engine. The meta-agent iterates on the full pipeline: model selection, preprocessing, threshold tuning, and ensemble strategies.
+Train a prompt injection classifier that generalizes to novel attack techniques it has never seen. Iterate on the training process in `harness.py` to maximize the score on held-out evaluation data in `benchmark.py`.
+
+This directly parallels Karpathy's autoresearch:
+- `harness.py` = `train.py` — model, training loop, training data, hyperparameters
+- `benchmark.py` = `prepare.py` — held-out evaluation, locked, do not modify
+
+## What You're Researching
+
+**Out-of-distribution generalization.** The training data contains basic attack categories (instruction overrides, role-play, delimiter confusion, social engineering, encoding). The held-out test set contains **novel techniques not in the training data** — homoglyphs, zero-width characters, fake conversations, XML injection, code comment injection, output format manipulation.
+
+The gap between in-distribution and out-of-distribution performance is the research target. Current published models (e.g., ProtectAI DeBERTa-v3) drop from 99.93% F1 in-distribution to 70.93% OOD. Closing that gap is the goal.
 
 ## The Score
 
 ```
-score = 0.40 * detection_f1            — overall precision/recall balance
-      + 0.25 * (1 - false_positive_rate) — avoiding blocking legitimate text
-      + 0.20 * advanced_detection_rate   — catching sophisticated Tier 3 attacks
+score = 0.40 * detection_f1            — precision/recall on ALL attacks
+      + 0.25 * (1 - false_positive_rate) — avoiding false alarms on legitimate text
+      + 0.20 * advanced_detection_rate   — catching Tier 3 (novel/OOD) attacks
       + 0.15 * technique_coverage        — detecting diverse attack categories
 ```
-
-The `advanced_detection_rate` (20% weight) specifically measures Tier 3 attacks: homoglyphs, zero-width characters, fake conversations, XML injection, code comment injection. **This is where real improvement happens.**
 
 ## Setup
 
 ```bash
-# Install BERT dependencies
+# Install dependencies
 pip install transformers torch
 
-# Run benchmark (downloads model on first run)
+# Run (trains model + evaluates on held-out data)
 cd security/prompt-injection/defense
 python benchmark.py
 ```
 
-If `transformers`/`torch` are not installed, the harness falls back to a heuristic detector (lower baseline score).
-
-## Architecture
-
-The detector pipeline has 4 stages, all modifiable:
-
-```
-Input text
-    │
-    ▼
-[1. Preprocess]      ← Unicode normalization, encoding detection, cleaning
-    │
-    ▼
-[2. BERT Classify]   ← HuggingFace text-classification pipeline
-    │
-    ▼
-[3. Post-process]    ← Heuristic boosts, ensemble signals, confidence adjustment
-    │
-    ▼
-Detection result
-```
+Without transformers/torch installed, falls back to TF-IDF + logistic regression.
 
 ## What you can modify
 
-- **`harness.py`** — the `InjectionDetector` class. This is the ONLY file you may edit.
-- You must preserve: `detect(text) -> {"is_injection": bool, "confidence": float, "technique": str, "signals": list}`
+**`harness.py`** — everything in this file is fair game:
 
-### Tunable knobs
+### Hyperparameters
+| Parameter | Default | What it controls |
+|-----------|---------|-----------------|
+| `MODEL_NAME` | `microsoft/deberta-v3-small` | Base encoder |
+| `NUM_EPOCHS` | 3 | Training epochs |
+| `LEARNING_RATE` | 2e-5 | Optimizer learning rate |
+| `BATCH_SIZE` | 8 | Training batch size |
+| `MAX_LENGTH` | 256 | Max input tokens |
+| `WARMUP_RATIO` | 0.1 | LR warmup fraction |
+| `WEIGHT_DECAY` | 0.01 | AdamW weight decay |
+| `FREEZE_LAYERS` | 0 | Encoder layers to freeze (0=full fine-tune) |
+| `LABEL_SMOOTHING` | 0.0 | Label smoothing for loss |
+| `DROP_RATE` | 0.1 | Classification head dropout |
 
-| Parameter | Current | What it does |
-|-----------|---------|-------------|
-| `MODEL_NAME` | `protectai/deberta-v3-base-prompt-injection-v2` | Which HuggingFace model to use |
-| `THRESHOLD` | `0.5` | Classification confidence threshold |
-| `MAX_LENGTH` | `512` | Max tokens for BERT input |
-| `_preprocess()` | Strip whitespace | Preprocessing before classification |
-| `_postprocess()` | Pass-through | Post-processing / ensemble signals |
+### Training data
+- `TRAINING_DATA` — the inline dataset (37 injections + 30 legitimate)
+- `augment_training_data()` — data augmentation function
+
+### Architecture
+- `_train_transformer()` — the full training pipeline
+- Classification head on top of the base model
+- Loss function
+- Optimizer and scheduler
 
 ## What you CANNOT modify
 
-- **`benchmark.py`** — locked evaluation corpus and scoring.
-
-## Attack Corpus
-
-30 attacks across 3 difficulty tiers + 15 legitimate inputs:
-
-- **Tier 1 — Basic** (10): Direct keyword-based injections
-- **Tier 2 — Intermediate** (10): Social engineering, encoding, embedded instructions
-- **Tier 3 — Advanced** (10): Homoglyphs, zero-width chars, XML injection, fake conversations, code comment injection
-- **Legitimate** (15): Security research discussions, code with "ignore" in names, base64 questions
+- **`benchmark.py`** — held-out test data and scoring. This is the trust boundary.
 
 ## Experimentation Ideas
 
+### Training data (highest expected impact)
+- **Hard negative mining**: Add more legitimate texts that contain injection-like keywords
+- **Augmentation**: Paraphrase attacks, add encoding variants, combine techniques
+- **Class balance**: Experiment with oversampling rare techniques vs uniform sampling
+- **Synthetic attacks**: Generate novel attack patterns to pre-expose the model
+
+### Hyperparameters
+- **Learning rate**: Try 1e-5, 3e-5, 5e-5. This is often the single most impactful knob.
+- **Epochs**: More epochs can overfit to training distribution. Fewer may underfit. Try 1-10.
+- **Freeze layers**: Freezing early layers (FREEZE_LAYERS=4) speeds training and can improve OOD by preserving general representations
+- **Label smoothing**: 0.05-0.15 can help generalization by preventing overconfident predictions
+
+### Loss function
+- **Focal loss**: Upweights hard examples. Could improve detection of subtle attacks.
+- **Contrastive loss**: Learn to separate attack/legitimate embeddings in feature space.
+- **Weighted CE**: Upweight injection class if recall is low.
+
 ### Model selection
-- Try different models: `deepset/deberta-v3-base-injection`, `laiyer/deberta-v3-base-prompt-injection`, `fmops/distilbert-prompt-injection`
-- Compare model sizes vs accuracy tradeoffs
-- Try fine-tuning on the specific attack corpus (if you generate additional training data)
+- `microsoft/deberta-v3-xsmall` — fastest (22M), good for rapid iteration
+- `microsoft/deberta-v3-small` — best tradeoff (44M), default
+- `microsoft/deberta-v3-base` — highest capacity (86M), slower
 
-### Preprocessing improvements
-- **Unicode normalization**: NFKC normalize to catch homoglyphs (Cyrillic а → Latin a)
-- **Zero-width character stripping**: Remove `\u200b`, `\u200c`, `\u200d`, `\ufeff`
-- **Encoding detection**: Detect and decode base64/hex before classification
-- **Structural normalization**: Strip HTML/XML/markdown formatting
-
-### Post-processing / ensemble
-- **Heuristic boosts**: If BERT is uncertain but heuristic signals are strong, boost confidence
-- **Structural analysis**: Detect fake delimiters, conversation boundaries, XML injection patterns
-- **Multi-model ensemble**: Run 2-3 small models, vote on classification
-- **Confidence calibration**: Adjust thresholds per technique category
-
-### Reducing false positives
-- **Context-aware thresholds**: Higher threshold for text that mentions security topics
-- **Negative signals**: Academic language, code context, documentation references → reduce confidence
-- **Two-stage: coarse filter + fine classifier**: Quick check first, expensive model only if uncertain
+### Architecture modifications
+- Custom classification head (MLP with hidden layer instead of linear)
+- Attention pooling instead of [CLS] token
+- Multi-task: classify technique category alongside binary injection/safe
 
 ## Experimentation Loop
 
 LOOP FOREVER:
 
-1. Run `python benchmark.py` to get current score.
-2. Check which attacks are missed (especially Tier 3) and which cause false positives.
-3. Modify `harness.py` — change model, preprocessing, thresholds, or ensemble.
+1. Run `python benchmark.py` to train + evaluate.
+2. Check the output: which attacks are missed? Which cause false positives?
+3. Modify `harness.py` — training data, hyperparameters, augmentation, architecture.
 4. Run benchmark again.
-5. If improved → commit and keep. If not → revert.
-6. Never stop.
+5. If score improved → `git commit` and keep.
+6. If score is same or worse → `git reset` and try something different.
+7. Never stop.
 
 ## Logging
 
 ```
 commit	score	status	description
-a1b2c3d	0.466000	keep	baseline keyword heuristic (no BERT)
-b2c3d4e	0.720000	keep	added protectai/deberta-v3-base-prompt-injection-v2
-c3d4e5f	0.780000	keep	added Unicode NFKC normalization for homoglyph detection
-d4e5f6g	0.810000	keep	ensemble: BERT + zero-width char detection + delimiter heuristic
+a1b2c3d	0.285000	keep	baseline — TF-IDF fallback (no transformers)
+b2c3d4e	0.650000	keep	DeBERTa-v3-small, 3 epochs, lr=2e-5
+c3d4e5f	0.710000	keep	added hard negative training examples
+d4e5f6g	0.680000	discard	focal loss — hurt more than helped
+e5f6g7h	0.750000	keep	label smoothing 0.1 + freeze first 2 layers
 ```

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Benchmark: Prompt Injection Defense
-=====================================
+Benchmark: Prompt Injection Defense (Held-Out Evaluation)
+==========================================================
 
-Tests a detector against a comprehensive corpus of injection attacks AND
-legitimate inputs. The corpus includes basic, intermediate, and advanced
-attacks — including techniques that simulate novel discoveries.
+Evaluates a TRAINED classifier on held-out attack data. The training
+happens in harness.py (which the meta-agent modifies). This file
+contains ONLY the evaluation data and scoring — the trust boundary.
 
-The detector must catch attacks while avoiding false positives on
-legitimate text that discusses security topics, contains technical
-jargon, or looks superficially suspicious.
+The held-out test set intentionally includes attack techniques NOT
+present in the training data, so the score directly measures
+out-of-distribution generalization.
 
 Fitness signal:
   score = 0.40 * detection_f1
@@ -17,9 +17,9 @@ Fitness signal:
         + 0.20 * advanced_detection_rate
         + 0.15 * technique_coverage
 
-The advanced_detection_rate specifically measures performance on
-sophisticated attacks that simple keyword detectors miss. This
-incentivizes building detectors that go beyond pattern matching.
+This parallels Karpathy's autoresearch:
+  harness.py  = train.py  (model + training loop + hyperparameters)
+  benchmark.py = prepare.py (held-out evaluation — locked, do not modify)
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
-from harness import InjectionDetector  # noqa: E402
+from harness import train_and_get_detector  # noqa: E402
 
 # ======================================================================
 # Attack corpus — 3 difficulty tiers
@@ -118,7 +118,11 @@ def _run_detection(detector: InjectionDetector, corpus: list[dict], expected: bo
 
 
 def run_benchmark() -> float:
-    detector = InjectionDetector()
+    print("=" * 60)
+    print("Training classifier...")
+    print("=" * 60)
+    detector = train_and_get_detector()
+    print()
 
     # Run on all tiers
     basic_results = _run_detection(detector, BASIC_ATTACKS, expected=True)
