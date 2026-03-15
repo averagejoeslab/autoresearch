@@ -18,7 +18,7 @@ import sys
 # ---------------------------------------------------------------------------
 # Path setup
 # ---------------------------------------------------------------------------
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 
 from harness import MemoryConsolidator  # noqa: E402
 

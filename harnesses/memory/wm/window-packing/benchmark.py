@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 
 from contracts import AgentMessage  # noqa: E402
 from harness import WindowPacker  # noqa: E402

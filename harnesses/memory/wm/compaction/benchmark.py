@@ -20,7 +20,7 @@ import os
 import sys
 
 # --- make the repo root importable so `from contracts import ...` works ---
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 
 from contracts import AgentMessage  # noqa: E402 — validates contracts package
 from harness import ContextCompactor  # noqa: E402 — the mutable harness

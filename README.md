@@ -20,13 +20,14 @@ program.md      — agent instructions (defines the experiment loop)
 
 ```
 harnesses/
-├── context/              #1 open problem in agent quality
-│   ├── compaction/        Summarizing/compressing conversation history
-│   ├── window-packing/    Optimal token budget allocation
-│   └── jit-loading/       Loading context on-demand vs upfront
-├── memory/               Long-term persistence and retrieval
-│   ├── retrieval/         Storage backends + search strategies
-│   └── consolidation/    Episodic → semantic generalization
+├── memory/               Unified memory system (#1 open problem)
+│   ├── wm/                Working memory (context window management)
+│   │   ├── compaction/     What to keep/evict from working memory
+│   │   ├── window-packing/ Budget allocation across memory sections
+│   │   └── jit-loading/    Pulling from long-term into working memory
+│   └── ltm/               Long-term memory (persistent storage)
+│       ├── retrieval/      Storage backends + search strategies
+│       └── consolidation/  Episodic → semantic generalization
 ├── tools/                Tool interface design + usage patterns
 │   ├── interface-design/  How tool descriptions affect performance
 │   ├── selection/         When to use which tool

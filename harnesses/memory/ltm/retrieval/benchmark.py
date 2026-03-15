@@ -23,7 +23,7 @@ import time
 # ---------------------------------------------------------------------------
 # Path setup so we can import from contracts/
 # ---------------------------------------------------------------------------
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 
 from harness import MemoryStore  # noqa: E402
 
